@@ -9,9 +9,12 @@ app.use('/api', empresaRoutes);
 db.sequelize.authenticate()
     .then(() => {
         console.log('Conexión a la base de datos establecida con éxito.');
-        const PORT = 3000;
+        const PORT = 3001; // Cambia el puerto a 3001
         app.listen(PORT, () => {
-            console.log(`Server running on http://localhost:${PORT}`);
+            console.log(`Backend corriendo en http://localhost:${PORT}`);
         });
     })
-    .catch
+    .catch(error => {
+        console.error('No se pudo conectar a la base de datos:', error);
+    });
+
