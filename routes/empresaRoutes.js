@@ -128,11 +128,10 @@ router.put('/empresa/:id', async (req, res) => {
     }
 });
 //editar la galeria 
-//editar la galeria 
 router.put('/galeria/:id', galeriaUpload.single('imagen'), async (req, res) => {
     const { id } = req.params;
     const { descripcion } = req.body;
-    const imagenName = req.file ? req.file.filename : null; // Aquí cambiamos para que solo use el nombre del archivo si se ha subido uno.
+    const imagenName = req.file ? req.file.filename : null;
 
     try {
         const galeriaToUpdate = await galeria.findByPk(id);
@@ -140,32 +139,36 @@ router.put('/galeria/:id', galeriaUpload.single('imagen'), async (req, res) => {
             return res.status(404).json({ error: 'Galería no encontrada.' });
         }
 
-        if (descripcion) {
-            galeriaToUpdate.descripcion = descripcion;
-        }
+        if (imagenName && galeriaToUpdate.imagen !== imagenName) {
+            console.log("Intentando eliminar la imagen anterior:", galeriaToUpdate.imagen);
+            
+            const pathToDelete = path.join(__dirname, 'imagenesdegaleria', galeriaToUpdate.imagen);
+            console.log("Ruta completa de la imagen a eliminar:", pathToDelete);
+            
+            try {
+                fs.unlinkSync(pathToDelete);
+                console.log("Imagen anterior eliminada con éxito");
+            } catch (err) {
+                console.error("Error al eliminar el archivo de imagen anterior:", err);
+            }
         
-        // Si se ha cargado una nueva imagen
-        if (imagenName) {
-            // Eliminar la imagen anterior
-            fs.unlink(path.join(__dirname, 'imagenesdegaleria', galeriaToUpdate.imagen), (err) => {
-                if (err) {
-                    console.error("Error al eliminar el archivo de imagen anterior:", err);
-                } else {
-                    console.log("Imagen anterior eliminada con éxito.");
-                }
-            });
-
-            // Actualizar con el nuevo nombre de imagen
+            // Actualizamos la galería con la nueva imagen
             galeriaToUpdate.imagen = imagenName;
         }
 
+        if (descripcion) {
+            galeriaToUpdate.descripcion = descripcion;
+        }
+
         await galeriaToUpdate.save();
+
         res.json(galeriaToUpdate);
     } catch (error) {
         console.error("Error al actualizar galería:", error.message);
         res.status(500).json({ error: "Error al actualizar la galería." });
     }
 });
+
 
 //eliminacion de galeria
 router.delete('/galeria/:id', async (req, res) => {
