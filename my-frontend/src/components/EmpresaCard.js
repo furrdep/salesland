@@ -43,7 +43,24 @@ function EmpresaCard({ empresa }) {
         }
         setIsEditing(!isEditing);
     };
-    
+    const handleDelete = async () => {
+        if (window.confirm("¿Estás seguro de que deseas eliminar esta empresa y todas sus galerías asociadas?")) {
+            try {
+                const response = await fetch(`/api/empresa/${empresa.id}`, {
+                    method: 'DELETE',
+                });
+
+                if (response.ok) {
+                    console.log("Empresa eliminada con éxito");
+                    window.location.reload();
+                } else {
+                    console.error("Error al eliminar la empresa");
+                }
+            } catch (error) {
+                console.error('Error al eliminar empresa:', error);
+            }
+        }
+    };
 
     return (
         <div className="empresa-card">
@@ -69,6 +86,7 @@ function EmpresaCard({ empresa }) {
             </p>
 
             <button onClick={handleEditSave}>{isEditing ? 'Guardar' : 'Editar'}</button>
+            <button onClick={handleDelete}>Eliminar Empresa</button> {/* Botón de eliminar */}
 
             <h3>Subir galeria:</h3>
             <GaleriaForm empresaId={empresa.id} />

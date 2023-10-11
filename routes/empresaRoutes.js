@@ -128,6 +128,7 @@ router.put('/empresa/:id', async (req, res) => {
     }
 });
 //editar la galeria 
+//editar la galeria 
 router.put('/galeria/:id', galeriaUpload.single('imagen'), async (req, res) => {
     const { id } = req.params;
     const { descripcion } = req.body;
@@ -142,18 +143,30 @@ router.put('/galeria/:id', galeriaUpload.single('imagen'), async (req, res) => {
         if (descripcion) {
             galeriaToUpdate.descripcion = descripcion;
         }
+        
+        // Si se ha cargado una nueva imagen
         if (imagenName) {
-            galeriaToUpdate.imagen = imagenName; // Usamos solo el nombre del archivo aquí
+            // Eliminar la imagen anterior
+            fs.unlink(path.join(__dirname, 'imagenesdegaleria', galeriaToUpdate.imagen), (err) => {
+                if (err) {
+                    console.error("Error al eliminar el archivo de imagen anterior:", err);
+                } else {
+                    console.log("Imagen anterior eliminada con éxito.");
+                }
+            });
+
+            // Actualizar con el nuevo nombre de imagen
+            galeriaToUpdate.imagen = imagenName;
         }
 
         await galeriaToUpdate.save();
-
         res.json(galeriaToUpdate);
     } catch (error) {
         console.error("Error al actualizar galería:", error.message);
         res.status(500).json({ error: "Error al actualizar la galería." });
     }
 });
+
 //eliminacion de galeria
 router.delete('/galeria/:id', async (req, res) => {
     try {
@@ -183,7 +196,40 @@ router.delete('/galeria/:id', async (req, res) => {
     }
 });
 
+//eliminacion de empresas
+router.delete('/empresa/:id', async (req, res) => {
+    try {
+        const empresaToDelete = await Empresa.findByPk(req.params.id);
+        if (!empresaToDelete) {
+            return res.status(404).json({ error: 'Empresa no encontrada.' });
+        }
 
+        // Obtener todas las galerías asociadas a la empresa
+        const galerias = await galeria.findAll({
+            where: { empresa_id: req.params.id }
+        });
 
+        // Eliminar cada imagen de galería del sistema de archivos y luego la entrada en la base de datos
+        for (let g of galerias) {
+            fs.unlink(path.join(__dirname, 'imagenesdegaleria', g.imagen), (err) => {
+                if (err) {
+                    console.error("Error al eliminar el archivo de imagen:", err);
+                    // Aquí, nuevamente, puedes decidir si deseas continuar o detener el proceso.
+                }
+            });
+
+            // Eliminar entrada de la galería en la base de datos
+            await g.destroy();
+        }
+
+        // Finalmente, eliminar la empresa
+        await empresaToDelete.destroy();
+
+        res.json({ success: 'Empresa y sus galerías asociadas eliminadas correctamente.' });
+    } catch (error) {
+        console.error("Error al eliminar la empresa y sus galerías:", error.message);
+        res.status(500).json({ error: "Error al eliminar la empresa y sus galerías." });
+    }
+});
 
 module.exports = router;
